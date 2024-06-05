@@ -1,0 +1,30 @@
+get /                                   -- works w
+get /login                              -- works w
+post /login/password                    -- works w
+post /logout                            -- works w
+get /signup                             -- works w
+post /signup                            -- works w
+post /api/signup                        -- works w
+post /api/login/password                -- works
+get /api/loginfailer                    -- works
+post /api/logout                        -- works
+post /api/refreshtoken                  -- works
+post /api/test                          -- works
+post /api/sendemailpass                 -- works
+get /api/${urlResetPass}/:token reset   -- works
+post /api/reset-pass                    -- works
+get /testform                           -- works
+
+Roma 123456
+
+
+Vasa 123456 other 654321
+
+{"request":"good","message":"You are registered","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2Vyc0lkIjoyLCJjb25uZWN0aW9uSWQiOjQsImlhdCI6MTcxNzQxNDAyNiwiZXhwIjoxNzIwMDA2MDI2fQ.BwFstbwxBlDRwFEuXFUMmddOc15H7QbTbIGXNw1Tlz0","longToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2Vyc0lkIjoyLCJjb25uZWN0aW9uSWQiOjQsImlhdCI6MTcxNzQxNDAyNiwiZXhwIjoxNzI1MTkwMDI2fQ.gvNwTXycUeRdjCJigkagTAC5OsQD79qpisAwrdvTUSg"}
+
+{"request":"good","message":"You are registered","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2Vyc0lkIjoyLCJjb25uZWN0aW9uSWQiOjUsImlhdCI6MTcxNzQyMDIzMCwiZXhwIjoxNzIwMDEyMjMwfQ.7jBzpDn_tJuVsE9ywzyqMsifmuqv9nMJtWDAjW9ILqs","longToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2Vyc0lkIjoyLCJjb25uZWN0aW9uSWQiOjUsImlhdCI6MTcxNzQyMDIzMCwiZXhwIjoxNzI1MTk2MjMwfQ.0E3EXnAJMuS-pAeh01TEEagJaeIfZAhLSmf52-mYhl8"}
+
+{"request":"good","message":"You are registered","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2Vyc0lkIjoyLCJjb25uZWN0aW9uSWQiOjYsImlhdCI6MTcxNzQ4NTQ1MSwiZXhwIjoxNzIwMDc3NDUxfQ.yqhdy9JEtFWOS7714M3Nj59jK13Za85dYpYm-xAG2tQ","longToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2Vyc0lkIjoyLCJjb25uZWN0aW9uSWQiOjYsImlhdCI6MTcxNzQ4NTQ1MSwiZXhwIjoxNzI1MjYxNDUxfQ.2zdoR5S2hJICmIhn_Cogj0a3odPp66NGtK9kFouy6Vc"}
+
+Vasa 654321
+{"request":"good","message":"You are registered","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2VySWQiOjIsImNvbm5lY3Rpb25JZCI6NywiaWF0IjoxNzE3NDk4NDQ1LCJleHAiOjE3MjAwOTA0NDV9.Nwr6if1kQMqAaktvFKWxwgOeZBxOMiCff2rDasxJsKg","longToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IlZhc2EiLCJ1c2VySWQiOjIsImNvbm5lY3Rpb25JZCI6NywiaWF0IjoxNzE3NDk4NDQ1LCJleHAiOjE3MjUyNzQ0NDV9.yoI-HClN5g0lDdB8LTb5Mow4y24L2nZfqydjq9gOcC8"}
