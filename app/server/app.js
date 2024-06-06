@@ -9,7 +9,8 @@ const express = require('express'),
     db = require('./db'),
     jwt = require('jsonwebtoken'),
     nodemailer = require('nodemailer'),
-    cookieParser = require('cookie-parser')
+    cookieParser = require('cookie-parser'),
+    handlers = require('./lib/handlers')
 
 const urlResetPass = 'reset' // это url я вынес в переменную, потому что он используется в двух местах
 
@@ -92,9 +93,7 @@ const getTokenFunction = (params, tokenSecret) => { // pframs -- это объе
 //             return { result: true, connectionsId: rows.lastID }
 //         })
 // }
-const setCookiesIdConnections = (res, connectionsId) => {
-    return res.cookie('connectionId', connectionsId, { signed: true, maxAge: sessionCookiesExpirationMM })
-}
+
 // const setConnectionsForWeb = (db, userAgent, usersId, res) => {
 //     const recordDBResult = setConnections(db, userAgent, usersId)
 //     console.log(recordDBResult)
@@ -120,15 +119,7 @@ const deleteConnection = (db, connectionsId) => {
 //     }
 //     return username
 // }
-const forSignup = (req, res, next, db, userAgent, usersId) => {
-    db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)',
-        [userAgent, usersId], (err, rows) => {
-            if (err) return next()
-            setCookiesIdConnections(res, rows.insertId)
-            res.redirect('/');
-        }
-    )
-}
+
 const forSignupAPI = (req, res, next, db, usersId) => {
     const userAgent = req.headers['user-agent'] ?? 'Unknown'
     db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)',
@@ -168,38 +159,6 @@ const forResAPI = (req, res, next, db, userId, username) => {
             })
         }
     )
-}
-const forGETRender = (page) => {
-    return (req, res, next) => {
-        const now = new Date()
-        res.render(page, {
-            username: (function (req, res) {
-                let username
-                if (req.user) {
-                    username = req.user.username
-                    if (!req.signedCookies.connectionId) {
-                        db.run('SELECT * FROM users WHERE username = ?', [req.user.username], (err, rows) => {
-                            if (err) return next(err)
-                            if (rows.length !== 1) return next()
-                                (function (db, userAgent, usersId, res) {
-                                    (function (db, userAgent, usersId) {
-                                        db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)', [userAgent, usersId], (err, rows) => {
-                                            if (err) return next(err)
-                                                (function (res, connectionsId) {
-                                                    return res.cookie('connectionId', connectionsId, { signed: true, maxAge: sessionCookiesExpirationMM })
-                                                })(res, rows.lastID)
-                                        })
-                                    })(db, userAgent, usersId)
-                                })(db, req.headers['user-agent'], rows[0].id, res)
-                        })
-                    }
-                } else {
-                    username = 'Не актуализирован'
-                }
-                return username
-            })(req, res)
-        })
-    }
 }
 const forGETRenderOther = (page) => {
     return (req, res, next) => {
@@ -388,25 +347,15 @@ app.use(session({
 // app.use(passport.authenticate('session')); // c этим все работало
 app.use(bodyParser.urlencoded({ extended: true }))
 
-app.get('/',
-    passport.authenticate('session'),
-    forGETRender('home')
-)
+app.get('/', passport.authenticate('session'), handlers.homeGet )
 
-app.get('/login',
-    passport.authenticate('session'),
-    forGETRender('login')
-)
+app.get('/login', passport.authenticate('session'), handlers.loginGet )
 // app.post('/login/password', passport.authenticate('local', {
 //     successRedirect: '/',
 //     failureRedirect: '/login'
 // }));
 // let username = req.user ? req.user.username : 'Не актуализирован'
-app.post('/login/password', passport.authenticate('local', { failureRedirect: '/login' }), (req, res, next) => {
-    const userId = req.user.id
-    if (!userId) return next()
-    return forSignup(req, res, next, db, req.headers['user-agent'] ?? 'Unknown', userId)
-})
+app.post('/login/password', passport.authenticate('local', { failureRedirect: '/login' }), handlers.loginPasswordPost)
 /* 
 Это то что в req.user
 Похоже полностью повторяет то, что хранистя в БД
@@ -421,25 +370,9 @@ app.post('/login/password', passport.authenticate('local', { failureRedirect: '/
   delete_: 0
 }
 */
-app.post('/logout', passport.authenticate('session'), function (req, res, next) {
-    req.logout(function (err) {
-        if (err) { return next(err); }
-        console.log(JSON.stringify(req.signedCookies))
-        db.run('UPDATE connections SET delete_ = 1 WHERE id = ?', [req.signedCookies.connectionId], (err, rows) => {
-            if (err) return next(err)
-            res.clearCookie('connectionId')
-            res.redirect('/');
-        })
-        // deleteConnection(db, Number(req.signedCookies.connectionId))
-        // res.clearCookie('connectionId')
-        // res.redirect('/');
-    });
-});
+app.post('/logout', passport.authenticate('session'), handlers.logoutPost )
 
-app.get('/signup',
-    passport.authenticate('session'),
-    forGETRender('signup')
-)
+app.get( '/signup', passport.authenticate('session'), handlers.signupGet )
 /* 
 Вот что сохраняется в БД в таблице sessions
 
@@ -487,36 +420,7 @@ router.post('/signup', function(req, res, next) {
 });
 
 */
-app.post('/signup',
-    passport.authenticate('session'),
-    function (req, res, next) {
-        const username = req.body.username
-        db.run('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
-            if (err) return res.status(500).render('error')
-            if (1 == row.length) return res.render('notunic')
-            if (2 <= row.length) return res.status(500).render('error')
-            const salt = crypto.randomBytes(16);
-            crypto.pbkdf2(req.body.password, salt, 310000, 32, 'sha256', function (err, hashedPassword) {
-                if (err) return res.status(500).render('error')
-                db.run('INSERT INTO users (username, hashed_password, salt, email) VALUES (?, ?, ?, ?)', [
-                    username,
-                    hashedPassword,
-                    salt,
-                    req.body.email
-                ], function (err, rows) {
-                    if (err) return res.status(500).render('error')
-                    var user = {
-                        id: this.lastID,
-                        username
-                    };
-                    req.login(user, function (err) {
-                        if (err) { return next(err); }
-                        return forSignup(req, res, next, db, req.headers['user-agent'], rows.insertId)
-                    });
-                })
-            })
-        })
-    })
+app.post('/signup', passport.authenticate('session'), handlers.signupPost)
 /* 
 rows INSERT
 

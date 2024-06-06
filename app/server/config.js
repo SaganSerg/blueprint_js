@@ -49,10 +49,13 @@ module.exports = {
     sessionCookiesExpirationMM: oneDayMMSecond * 1,  // 1 день
     // cleanConnectionsTime: oneDayMMSecond * 1, // 1 day
     cleanConnectionsTime: oneMinutesMMSecond * 2, // 
+    
     // отправка почты
     smtpKey: 'wgsfizmubelvmdly', // это ключ для сервера отправки почты в данном случае на яндексе
     smtpHost: 'smtp.yandex.ru',
     smtpPort: 465,
-    smtpUser: 'sagan.sergei.mih'
+    smtpUser: 'sagan.sergei.mih',
 
+    // это строка, которая подставляется, если не известен user-agent
+    unknownUserAgent: 'unknown'
 }
