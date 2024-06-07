@@ -1,7 +1,17 @@
-const   db = require('./../db'), 
-        crypto = require('crypto'), 
-        { sessionCookiesExpirationMM, unknownUserAgent } = require('./../config')
+const db = require('./../db'),
+    crypto = require('crypto'),
+    { sessionCookiesExpirationMM, unknownUserAgent } = require('./../config')
 
+
+const setCookies = (err, rows) => {
+    if (err) return next(err)
+    return res.cookie('connectionId', rows.lastID, { signed: true, maxAge: sessionCookiesExpirationMM })
+}
+// const writeConnections = (err, rows) => {
+//     if (err) return next(err)
+//     if (rows.length !== 1) return next()
+//     return db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)', [req.headers['user-agent'], rows[0].id], setCookies)
+// }
 const forGETRender = (page) => {
     return (req, res, next) => {
         const now = new Date()
@@ -16,12 +26,7 @@ const forGETRender = (page) => {
                             if (rows.length !== 1) return next()
                                 (function (db, userAgent, usersId, res) {
                                     (function (db, userAgent, usersId) {
-                                        db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)', [userAgent, usersId], (err, rows) => {
-                                            if (err) return next(err)
-                                                (function (res, connectionsId) {
-                                                    return res.cookie('connectionId', connectionsId, { signed: true, maxAge: sessionCookiesExpirationMM })
-                                                })(res, rows.lastID)
-                                        })
+                                        db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)', [userAgent, usersId], setCookies)
                                     })(db, userAgent, usersId)
                                 })(db, req.headers['user-agent'], rows[0].id, res)
                         })
