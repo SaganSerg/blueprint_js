@@ -3,31 +3,7 @@ const oneMinutesMMSecond = 60 * 1000 // в миллисекундах
 const oneHourMMSecond = oneHour * 1000 // в миллисекундах
 const oneDaySecond = oneHour * 24 // в секундах
 const oneDayMMSecond = oneDaySecond * 1000 // в миллисекундах
-// const env = process.env.NODE_ENV || 'development'
-// const credentials = require(`./.credentials.${env}`)
 
-// это БД с данными
-// const   host = 'localhost',
-//         user = 'admin_aplcb',
-//         password = 'Vagon_3611',
-//         database = 'aplcb'
-
-// это БД с сессиями
-// const   sessionHost = 'localhost', 
-//         sessionUser = 'admin_sessions', 
-//         sessionPassword = 'Vagon_3611', 
-//         sessionDatabase = 'sessions'
-
-
-// const   longTokenExpire = oneDaySecond * 90, /* 90 дней */
-//         tokenExpire = oneDaySecond * 30, // 30 дней
-//         emailTokenExpire = oneDaySecond * 3
-// const sessionCookiesExpirationMM = oneDayMMSecond * 1 // 1 день
-// const domen = 'localhost'
-// const httpProtocol = 'http'
-// const yourEmail = 'sagan.sergei.mih@yandex.ru' // здесь должен быть реальный адрес с которого делается отправка
-
-        
 module.exports = { 
     credentials: require(`./.credentials.${process.env.NODE_ENV || 'development'}`), 
     // это БД с данными

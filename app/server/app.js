@@ -669,4 +669,5 @@ app.use((err, req, res, next) => {
 })
 app.listen(port, () => console.log(
     `Express started on http://localhost:${port}; ` +
+    ` ${app.get('env')} ` +
     `press Ctrl-C to terminate.`))
