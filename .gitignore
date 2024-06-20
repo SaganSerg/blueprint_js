@@ -1,1 +1,5 @@
 node_modules
+access.log
+.credentials.development.json
+.credentials.production.json
+.credentials.test.json

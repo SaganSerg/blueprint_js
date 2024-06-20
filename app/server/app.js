@@ -10,7 +10,10 @@ const express = require('express'),
     jwt = require('jsonwebtoken'),
     nodemailer = require('nodemailer'),
     cookieParser = require('cookie-parser'),
-    handlers = require('./lib/handlers')
+    handlers = require('./lib/handlers'),
+    morgan = require('morgan'),
+    fs = require('fs'),
+    cluster = require('cluster')
 
 const urlResetPass = 'reset' // это url я вынес в переменную, потому что он используется в двух местах
 
@@ -31,7 +34,7 @@ const { credentials,
     smtpHost,
     smtpPort,
     smtpUser
- } = require('./config')
+} = require('./config')
 
 const sessionStore = new MySQLStore(
     {
@@ -44,7 +47,7 @@ const sessionStore = new MySQLStore(
         указывая срок истечения кука явно, для того, чтобы это же точно время можно было использовать для удаления из таблицы с коннектами
         */
     }
-);
+)
 // YYYY-MM-DD НН:MI:SS
 const getTimeForMySQL = (timeStamp) => {
     const getTwoSimbols = (x) => {
@@ -56,8 +59,6 @@ const getTimeForMySQL = (timeStamp) => {
     const seconds = getTwoSimbols(time.getSeconds())
     const month = getTwoSimbols(time.getMonth() + 1)
     const date = getTwoSimbols(time.getDate())
-    
-    
     return `${time.getFullYear()}-${month}-${date} ${hours}:${minutes}:${seconds}`
 
 }
@@ -145,7 +146,7 @@ const forSignupAPI = (req, res, next, db, usersId) => {
         }
     )
 }
-const forResAPI = (req, res, next, db, userId, username) => { 
+const forResAPI = (req, res, next, db, userId, username) => {
     const userAgent = req.headers['user-agent'] ?? 'Unknown'
     db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)',
         [userAgent, userId], (err, rows) => {
@@ -163,7 +164,7 @@ const forResAPI = (req, res, next, db, userId, username) => {
 const forGETRenderOther = (page) => {
     return (req, res, next) => {
         res.render(page, {
-            username: (function(req, res) {
+            username: (function (req, res) {
                 let username
                 if (req.user) {
                     username = req.user.username
@@ -174,9 +175,9 @@ const forGETRenderOther = (page) => {
                             (function (db, userAgent, usersId) {
                                 db.run('INSERT INTO connections (user_agent, users_id) VALUES (?, ?)', [userAgent, usersId], (err, rows) => {
                                     if (err) return next(err)
-                                    (function (res, connectionsId) {
-                                        return res.cookie('connectionId', connectionsId, { signed: true, maxAge: sessionCookiesExpirationMM })
-                                })
+                                        (function (res, connectionsId) {
+                                            return res.cookie('connectionId', connectionsId, { signed: true, maxAge: sessionCookiesExpirationMM })
+                                        })
                                 })
                             })
                         }
@@ -257,9 +258,19 @@ const authenticateLongToken = (req, res, next) => {
         next();
     });
 }
+// __dirname --- это текущая папка
 const app = express()
 const port = process.env.PORT ?? 3000
-
+switch (app.get('env')) {
+    case 'development':
+        app.use(require('morgan')('dev'));
+        break;
+    case 'production':
+        const stream = fs.createWriteStream(__dirname + '/access.log', // файл access.log создается сам
+            { flags: 'a' })
+        app.use(morgan('combined', { stream }))
+        break
+}
 const eppressHandlebarObj = expressHandlebars.create({
     defaultLayout: 'main'
 })
@@ -268,16 +279,20 @@ const projectSymbolName = Symbol('Project name')
 // getMilliseconds()
 // getTimeForMySQL(now.setMinutes(now.getMinutes() - 1))
 
-let updateIntervalId = setInterval(() => { 
+let updateIntervalId = setInterval(() => {
     const now = new Date()
     db.run('UPDATE connections SET delete_ = 1 WHERE delete_ = 0 AND time_ < ?', [getTimeForMySQL(now.setMilliseconds(now.getMilliseconds() - cleanConnectionsTime))], (err, rows) => {
         if (err) return console.log('err cleanConnecitonsTime')
     })
 }, cleanConnectionsTime)
-
+app.use((req, res, next) => {
+    if (cluster.isWorker)
+        console.log(`Worker ${cluster.worker.id} received request`)
+    next()
+})
 app.use((req, res, next) => { // генерируем объкт с кастомными данными в объекте req, это будет нужно для того чтобы передавать что-то свое
     req[projectSymbolName] = {},
-    next()
+        next()
 })
 // app.use((req, res, next) => { // пока не удаляю, но надо будет кдалить
 //     deleteExpiredConnections(db)
@@ -347,9 +362,9 @@ app.use(session({
 // app.use(passport.authenticate('session')); // c этим все работало
 app.use(bodyParser.urlencoded({ extended: true }))
 
-app.get('/', passport.authenticate('session'), handlers.homeGet )
+app.get('/', passport.authenticate('session'), handlers.homeGet)
 
-app.get('/login', passport.authenticate('session'), handlers.loginGet )
+app.get('/login', passport.authenticate('session'), handlers.loginGet)
 // app.post('/login/password', passport.authenticate('local', {
 //     successRedirect: '/',
 //     failureRedirect: '/login'
@@ -370,9 +385,9 @@ app.post('/login/password', passport.authenticate('local', { failureRedirect: '/
   delete_: 0
 }
 */
-app.post('/logout', passport.authenticate('session'), handlers.logoutPost )
+app.post('/logout', passport.authenticate('session'), handlers.logoutPost)
 
-app.get( '/signup', passport.authenticate('session'), handlers.signupGet )
+app.get('/signup', passport.authenticate('session'), handlers.signupGet)
 /* 
 Вот что сохраняется в БД в таблице sessions
 
@@ -591,12 +606,12 @@ app.get(`/api/${urlResetPass}/:token`, (req, res, next) => {
 
         params.layout = null // это добавлен параметер сообщающий, что в шаблоне не нужно использовать шаблон
         params.token = token
-        return res.render('reset-pass', params ) 
+        return res.render('reset-pass', params)
     })
 })
 app.post('/api/reset-pass', (req, res, next) => {
     const { token, password } = req.body
-    console.log('this token' ,token)
+    console.log('this token', token)
     console.log(password)
     jwt.verify(token, credentials.emailTokenSecret, (err, decoded) => {
         if (err) return res.status(400).json({ request: 'error', message: 'Invalid or expired reset token' });
@@ -653,7 +668,15 @@ app.post('/api/reset-pass', (req, res, next) => {
 app.get('/testform', (req, res, next) => res.render('testform'))
 // пишу адрес странички чтобы удобней было копировать http://localhost:3000/testform
 // это конец тестового участка кода
-
+app.get('/fail', (req, res) => {
+    throw new Error('Nope!')
+})
+app.get('/epic-fail', (req, res) => {
+    process.nextTick(() => {
+        throw new Error('Kaboom!')
+    })
+    res.send('embarrased')
+})
 // custom 404 page
 app.use((req, res) => {
     res.type('text/plain')
@@ -662,12 +685,32 @@ app.use((req, res) => {
 })
 // custom 500 page
 app.use((err, req, res, next) => {
-    console.error(err.message)
+    console.error(err.message, err.stack)
     res.type('text/plain')
     res.status(500)
     res.send('500 - Server Error')
 })
-app.listen(port, () => console.log(
-    `Express started on http://localhost:${port}; ` +
-    ` ${app.get('env')} ` +
-    `press Ctrl-C to terminate.`))
+
+// forever start app.js
+// forever restart app.js
+// forever stop app.js
+
+process.on('uncaughtException', err => {
+    console.error('UNCAUGHT EXCEPTION\n', err.stack);
+    // сюда нужно вставить действия которые нужно закончить до того, как сервер ляжет
+    process.exit(1)
+  })
+function startServer(port) {
+    app.listen(port, () => console.log(
+        `Express started on http://localhost:${port}; ` +
+        ` ${app.get('env')} ` +
+        `press Ctrl-C to terminate.`))
+}
+if (require.main === module) {
+    // application run directly; start app server
+    startServer(process.env.PORT || 3000)
+} else {
+    // application imported as a module via "require": export
+    // function to create server
+    module.exports = startServer
+}
