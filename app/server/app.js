@@ -14,8 +14,15 @@ const express = require('express'),
     morgan = require('morgan'),
     fs = require('fs'),
     cluster = require('cluster')
+    // https = require('https') // это может быть использовано, в случае если нужен https без nginx 
 
 const urlResetPass = 'reset' // это url я вынес в переменную, потому что он используется в двух местах
+
+/* это нужно использовать если нужен будет https без nginx */
+// const options = {
+//     key: fs.readFileSync(__dirname + '/ssl/blueprint.pem'),
+//     cert: fs.readFileSync(__dirname + '/ssl/blueprint.crt'),
+// }
 
 const { credentials,
     sessionHost,
@@ -699,12 +706,17 @@ process.on('uncaughtException', err => {
     console.error('UNCAUGHT EXCEPTION\n', err.stack);
     // сюда нужно вставить действия которые нужно закончить до того, как сервер ляжет
     process.exit(1)
-  })
+})
 function startServer(port) {
     app.listen(port, () => console.log(
         `Express started on http://localhost:${port}; ` +
         ` ${app.get('env')} ` +
         `press Ctrl-C to terminate.`))
+    /* Этот закомментированный код может быть использован в случае, если потребуется https без nginx */
+    // https.createServer(options, app).listen(port, () => {
+    //     console.log(`Express started in ${app.get('env')} mode ` +
+    //         `on port + ${port}. On httpS https://localhost:${port}`)
+    // })
 }
 if (require.main === module) {
     // application run directly; start app server
